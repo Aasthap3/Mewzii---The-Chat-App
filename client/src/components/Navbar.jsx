@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 
 const Navbar = () => {
@@ -10,21 +11,21 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="sticky navbar shadow-sm text-primary flex justify-between items-center p-4 ">
+      <div className="sticky top-0 navbar shadow-sm text-primary flex justify-between items-center p-4 ">
         <span className="font-bold text-3xl">Mewzii</span>
 
         <ul className="flex space-x-4 text-lg items-center">
-          <li className="btn btn-ghost">
-            Home
+          <li>
+            <Link to="/" className="btn btn-ghost">Home</Link>
           </li>
-          <li className="btn btn-ghost">
-            About
+          <li>
+            <Link to="/about" className="btn btn-ghost">About</Link>
           </li>
-          <li className="btn btn-ghost">
-            Chat
+          <li>
+            <Link to="/chat" className="btn btn-ghost">Chat</Link>
           </li>
-          <li className="btn btn-ghost">
-            Login
+          <li>
+            <Link to="/login" className="btn btn-ghost">Login</Link>
           </li>
           <li>
             <select
