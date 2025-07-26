@@ -11,7 +11,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="sticky top-0 navbar shadow-sm text-primary flex justify-between items-center p-4 ">
+      <div className="sticky top-0 z-50 navbar bg-base-100 shadow-sm text-primary flex justify-between items-center p-4 ">
         <span className="font-bold text-3xl">Mewzii</span>
 
         <ul className="flex space-x-4 text-lg items-center">
