@@ -1,0 +1,183 @@
+import User from "../model/userModel.js";
+import bcrypt from "bcrypt";
+import { genAuthToken } from "../utils/auth.js";
+import getCloudinary from "../config/cloudinary.js";
+
+export const register = async (req, res, next) => {
+  try {
+    const { username, fullname, email, password } = req.body;
+
+    if (!username || !fullname || !email || !password) {
+      const error = new Error("All fields are required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      const error = new Error("User already exists with this email");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const profileLink = `https://placehold.co/600x400?text=${fullname.charAt(
+      0
+    )}`;
+
+    // Create user
+    const newUser = await User.create({
+      username,
+      fullname,
+      email,
+      password: hashedPassword,
+      profilePicture: profileLink,
+    });
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const login = async (req, res, next) => {
+  try {
+    const { emailOrUsername, password } = req.body;
+
+    console.log("Login attempt with data:", req.body);
+    if (!emailOrUsername || !password) {
+      const error = new Error("Email/Username and password are required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // Find user by email or username
+    const user = await User.findOne({
+      $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
+    });
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      const error = new Error("Invalid credentials");
+      error.statusCode = 401;
+      return next(error);
+    }
+
+    await genAuthToken(user._id, res);
+
+    res.status(200).json({
+      message: "Login successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const googleLogin = async (req, res, next) => {
+  try {
+    const { name, email, id, imageUrl } = req.body;
+
+    const existingUser = await User.findOne({ email });
+
+    if (!existingUser) {
+      // Create new user if not exists
+      const profileLink = imageUrl.split("=s96")[0] + "=s400-c";
+      const hashedGoogleId = await bcrypt.hash(id, 10);
+      const userName = email.split("@")[0];
+
+      const newUser = await User.create({
+        username: userName,
+        fullname: name,
+        email,
+        profilePicture: profileLink,
+        googleId: hashedGoogleId,
+        role: "User",
+        type: "googleUser",
+        status: "Active",
+      });
+
+      await genAuthToken(newUser._id, res);
+
+      res.status(201).json({
+        message: "User created successfully",
+        newUser,
+      });
+    } else if (existingUser.type === "normalUser") {
+      const hashedGoogleId = await bcrypt.hash(id, 10);
+      const upgradedUser = await User.findByIdAndUpdate(
+        existingUser._id,
+        {
+          googleId: hashedGoogleId,
+          type: "googleUser",
+        },
+        { new: true }
+      );
+
+      await genAuthToken(upgradedUser._id, res);
+
+      res.status(200).json({
+        message: "User logged in successfully",
+        upgradedUser,
+      });
+    } else {
+      const isMatch = await bcrypt.compare(id, existingUser.googleId);
+      if (!isMatch) {
+        const error = new Error("Google ID does not match");
+        error.statusCode = 401;
+        return next(error);
+      }
+      await genAuthToken(existingUser._id, res);
+      res.status(200).json({
+        message: "Login successful",
+        user: existingUser,
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    res.cookie("secret", "", {
+      expires: new Date(Date.now()),
+    });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+
+    if (!userId) {
+      const error = new Error("User ID is required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const user = await User.findByIdAndDelete(userId);
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

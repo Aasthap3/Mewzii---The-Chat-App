@@ -29,7 +29,8 @@ const userSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["googleUser", "NormalUser"],
+      enum: ["googleUser", "normalUser"],
+      default: "normalUser",
     },
     status: {
       type: String,

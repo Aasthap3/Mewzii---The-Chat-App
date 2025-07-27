@@ -1,62 +1,173 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
+import {FcGoogle} from "react-icons/fc";
 import cat from "../assets/cat.svg";
+import axios from "../config/api";
+import toast from "react-hot-toast";
+import { useGoogleAuth } from "../config/googleAuth";
 
 const LoginPage = () => {
-  const [emailOrUsername, setEmailOrUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const { theme } = useTheme();
+  const {
+    isLoading,
+    error: googleError,
+    isInitialized,
+    signInWithGoogle,
+  } = useGoogleAuth();
+  const [loginData, setLoginData] = useState({
+    emailOrUsername: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setLoginData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setFormError("");
     setLoading(true);
-    // Simulate login (accepts either demo@demo.com or demouser as username)
-    setTimeout(() => {
-      setLoading(false);
-      if ((emailOrUsername === "demo@demo.com" || emailOrUsername === "demouser") && password === "demo123") {
+    try {
+      const res = await axios.post("/auth/login", loginData);
+        toast.success("Login successful!");
         navigate("/chat");
-      } else {
-        setError("Invalid email/username or password");
-      }
-    }, 1000);
+    } catch (error) {
+      setFormError(
+        `Error: ${error?.response?.status || 500} : ${
+          error?.response?.data?.message || "Login failed"
+        }`
+      );
+    }
+    setLoading(false);
+    setLoginData({
+      emailOrUsername: "",
+      password: "",
+    });
+  };
+
+  const handleGoogleSuccess = async (userData) => {
+    try {
+      console.log("Google login successful:", userData);
+      const res = await axios.post("/auth/googleLogin", userData);
+      toast.success(res.data.message);
+      navigate("/chat");
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast.error("Google login failed. Please try again.");
+    }
+  };
+
+  const handleGoogleFailure = (error) => {
+    console.error("Google login error:", error);
+    toast.error("Google login failed. Please try again.");
+  };
+
+  const handleGoogleSignIn = async () => {
+    signInWithGoogle(handleGoogleSuccess, handleGoogleFailure);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 px-2">
-      <div className="card lg:card-side shadow-2xl bg-base-100 max-w-3xl w-full overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 px-2 py-6">
+      <div className="card flex flex-col md:flex-row shadow-2xl bg-base-100 max-w-3xl w-full overflow-hidden mx-2">
         {/* Illustration Side */}
-        <div className="hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-primary/10 to-secondary/10 p-10 w-1/2">
-          <img src={cat} alt="Login Illustration" className="w-72 h-72 object-contain mb-6 animate-fade-in" />
-          <h2 className="text-3xl font-extrabold text-primary mb-2">Welcome Back!</h2>
-          <p className="text-lg text-base-content/70 text-center">Sign in to continue chatting with your friends.</p>
+        <div className="flex flex-col justify-center items-center bg-gradient-to-br from-primary/10 to-secondary/10 p-6 md:p-10 w-full md:w-1/2 min-w-[220px] md:min-w-[300px] order-1 md:order-none">
+          <img
+            src={cat}
+            alt="Login Illustration"
+            className="w-32 h-32 sm:w-48 sm:h-48 md:w-72 md:h-72 object-contain mb-4 md:mb-6 animate-fade-in"
+          />
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-primary mb-1 md:mb-2 text-center">
+            Welcome Back!
+          </h2>
+          <p className="text-sm sm:text-base md:text-lg text-base-content/70 text-center">
+            Sign in to continue chatting with your friends.
+          </p>
         </div>
         {/* Form Side */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12">
-          <form className="w-full" onSubmit={handleSubmit}>
-            <h2 className="text-3xl font-extrabold text-center mb-6 tracking-tight">Sign In</h2>
-            {error && <div className="alert alert-error mb-4 py-2 px-3 text-center">{error}</div>}
-            <div className="form-control mb-4">
+        <div className="w-full flex flex-col justify-center items-center p-2 sm:p-4 md:p-8 order-2">
+          <form
+            className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl bg-base-100 rounded-lg shadow-none md:shadow p-4 sm:p-6 md:p-8"
+            onSubmit={handleSubmit}
+          >
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-center mb-4 md:mb-6 tracking-tight">
+              Sign In
+            </h2>
+            {(formError || googleError) && (
+              <div className="alert alert-error mb-4 py-2 px-3 text-center">
+                {formError || googleError}
+              </div>
+            )}
+            <div className="form-control mb-3 md:mb-4">
               <label className="label font-semibold">Email or Username</label>
-              <input type="text" className="input input-bordered input-md" value={emailOrUsername} onChange={e => setEmailOrUsername(e.target.value)} required placeholder="Enter your email or username" />
+              <input
+                type="text"
+                className="input input-bordered input-md w-full"
+                name="emailOrUsername"
+                value={loginData.emailOrUsername}
+                onChange={handleChange}
+                required
+                placeholder="Enter your email or username"
+              />
             </div>
-            <div className="form-control mb-6">
+            <div className="form-control mb-4 md:mb-6">
               <label className="label font-semibold">Password</label>
-              <input type="password" className="input input-bordered input-md" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Enter your password" />
+              <input
+                type="password"
+                className="input input-bordered input-md w-full"
+                name="password"
+                value={loginData.password}
+                onChange={handleChange}
+                required
+                placeholder="Enter your password"
+              />
             </div>
-            <button className="btn btn-primary btn-lg w-full mb-2 shadow-md hover:scale-[1.02] transition-transform" type="submit" disabled={loading}>
-              {loading ? <span className="loading loading-spinner"></span> : "Login"}
+            <button
+              className="btn btn-primary btn-lg w-full mb-2 shadow-md hover:scale-[1.02] transition-transform text-base md:text-lg"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="loading loading-spinner"></span>
+              ) : (
+                "Login"
+              )}
             </button>
             <div className="divider">or sign in with</div>
-            <button type="button" className="btn btn-outline btn-primary w-full flex items-center gap-2 mb-2" onClick={() => alert('Google login coming soon!')}>
-              <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M44.5 20H24v8.5h11.7C34.7 33.1 29.8 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c2.7 0 5.2.9 7.2 2.4l6.4-6.4C33.5 5.1 28.1 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-8.1 20-21 0-1.4-.1-2.4-.3-3.5z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 17.1 19.2 14 24 14c2.7 0 5.2.9 7.2 2.4l6.4-6.4C33.5 5.1 28.1 3 24 3c-7.2 0-13.2 4.1-16.7 10.1z"/><path fill="#FBBC05" d="M24 44c5.8 0 10.7-2.1 14.3-5.7l-6.6-5.4C29.7 34.9 27 36 24 36c-5.7 0-10.6-3.7-12.3-8.8l-7 5.4C7.8 41.1 15.3 44 24 44z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.7c-1.2 3.2-4.2 5.5-7.7 5.5-5.7 0-10.6-3.7-12.3-8.8l-7 5.4C7.8 41.1 15.3 44 24 44c10.5 0 20-8.1 20-21 0-1.4-.1-2.4-.3-3.5z"/></g></svg>
-              Google
-            </button>
+            {googleError ? (
+              <button
+                className="btn btn-outline btn-error font-sans flex items-center justify-center gap-2 m-2 w-full text-base md:text-lg"
+                disabled
+              >
+                <FcGoogle className="text-xl" />
+                {googleError}
+              </button>
+            ) : (
+              <button
+                onClick={handleGoogleSignIn}
+                className="btn btn-outline font-sans flex items-center justify-center gap-2 m-2 w-full text-base md:text-lg"
+                disabled={!isInitialized || isLoading}
+              >
+                <FcGoogle className="text-xl" />
+                {isLoading
+                  ? "Loading..."
+                  : isInitialized
+                  ? "Continue with Google"
+                  : "Google Auth Error"}
+              </button>
+            )}
             <div className="text-center mt-2">
               <span>Don't have an account? </span>
-              <Link to="/register" className="link link-primary">Register</Link>
+              <Link to="/register" className="link link-primary">
+                Register
+              </Link>
             </div>
           </form>
         </div>
