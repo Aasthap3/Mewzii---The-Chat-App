@@ -6,7 +6,9 @@ const ProfileBio = ({ user, onEdit }) => (
       <h3 className="text-xl font-semibold">Bio</h3>
       <button className="btn btn-xs btn-outline" onClick={onEdit}>Edit</button>
     </div>
-    <p className="text-base-content/80">{user.bio}</p>
+    <p className="text-base-content/80">
+      {user.bio || "No bio added yet. Click edit to add one!"}
+    </p>
   </div>
 );
 

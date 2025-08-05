@@ -1,35 +1,69 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ProfileHeader from "../components/userProfile/ProfileHeader";
 import ProfileBio from "../components/userProfile/ProfileBio";
 import ProfileSettings from "../components/userProfile/ProfileSettings";
 import ProfileActions from "../components/userProfile/ProfileActions";
-
-// Dummy user data for demonstration
-const dummyUser = {
-  username: "demouser",
-  fullname: "Demo User",
-  email: "demo@demo.com",
-  avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-  bio: "Hey! I'm a chat enthusiast and love meeting new people.",
-  joined: "2024-01-15",
-  theme: "light",
-};
+import { useAuth } from "../contexts/AuthContext";
 
 const UserProfilePage = () => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || {});
+  const { user: authUser, isLogin } = useAuth();
+  const navigate = useNavigate();
   const [editingBio, setEditingBio] = useState(false);
-  const [bioInput, setBioInput] = useState(user.bio);
+  const [bioInput, setBioInput] = useState(authUser?.bio || "");
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLogin) {
+      navigate("/login");
+    }
+  }, [isLogin, navigate]);
+
+  // Show loading or redirect if no user data
+  if (!authUser && isLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-300 py-8 px-2 flex items-center justify-center">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  // Format the user data to match the expected structure
+  const user = {
+    username: authUser?.username || "",
+    fullname: authUser?.fullname || "",
+    email: authUser?.email || "",
+    avatar: authUser?.profilePicture || `https://placehold.co/600x400?text=${authUser?.fullname?.charAt(0)?.toUpperCase() || "U"}`,
+    bio: authUser?.bio || "Hey! I'm new to this chat app.",
+    joined: authUser?.createdAt ? new Date(authUser.createdAt).toLocaleDateString() : "Recently",
+    theme: "light", // You can add theme preference to user model later
+  };
 
   const handleEditBio = () => setEditingBio(true);
   const handleSaveBio = () => {
-    setUser({ ...user, bio: bioInput });
+    // Here you would typically make an API call to update the bio
+    // For now, we'll just update the local state
     setEditingBio(false);
+    // TODO: Add API call to update user bio
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-300 py-8 px-2 flex flex-col items-center">
       <div className="w-full max-w-2xl">
+        {/* Back Navigation */}
+        <div className="mb-6">
+          <button 
+            onClick={() => navigate("/chat")} 
+            className="btn btn-ghost btn-sm gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Chat
+          </button>
+        </div>
+        
         <ProfileHeader user={user} />
         {editingBio ? (
           <div className="bg-base-100 rounded-xl shadow p-6 mb-8">

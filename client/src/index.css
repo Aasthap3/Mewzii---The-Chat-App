@@ -1,5 +1,4 @@
 @import "tailwindcss";
 
-@plugin "daisyui"{
-  themes: light --default, dark, cupcake, synthwave, retro, cyberpunk, valentine, halloween, aqua, pastel, forest, lemonade, black, caramellatte 
+@plugin "daisyui"{  themes: light --default, dark  cupcake, synthwave, retro, cyberpunk, valentine, halloween,  aqua, pastel,forest, lemonade, black,  caramellatte
 }

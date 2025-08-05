@@ -7,7 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import ChatPage from "../components/ChatPage";
 
 const ChatInterface = () => {
-  const { user, isLogin } = useAuth();
+  const { user, isLogin, logout } = useAuth();
   const navigate = useNavigate();
   const [chatUser, setChatUser] = useState("");
   const [selectedFriend, setSelectedFriend] = useState("");
@@ -24,22 +24,33 @@ const ChatInterface = () => {
   };
 
   useEffect(() => {
-    !isLogin && navigate("/login");
-    fetchAllUsers();
-  }, []);
+    if (!isLogin) {
+      navigate("/login");
+    } else {
+      fetchAllUsers();
+    }
+  }, [isLogin, navigate]);
 
-  const handleLogout = () => {
-    toast.promise(
-      axios.get("/auth/logout").then(() => {
-        sessionStorage.removeItem("user");
-        navigate("/login");
-      }),
-      {
-        loading: "Logging out...",
-        success: <b>Logged out successfully!</b>,
-        error: <b>Logout failed.</b>,
-      }
-    );
+  const handleLogout = async () => {
+    try {
+      await toast.promise(
+        axios.get("/auth/logout"),
+        {
+          loading: "Logging out...",
+          success: <b>Logged out successfully!</b>,
+          error: <b>Logout failed.</b>,
+        }
+      );
+      
+      // Use the logout function from AuthContext
+      logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if backend logout fails, clear frontend state
+      logout();
+      navigate("/login");
+    }
   };
 
   return (

@@ -2,14 +2,16 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../config/api";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ProfileActions = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     toast.promise(
       axios.get("/auth/logout").then(() => {
-        sessionStorage.removeItem("user");
+        logout();
         navigate("/login");
       }),
       {
@@ -28,7 +30,7 @@ const ProfileActions = () => {
     ) {
       toast.promise(
         axios.delete(`/auth/deleteUser/${userId}`).then(() => {
-          sessionStorage.removeItem("user");
+          logout();
           navigate("/register");
         }),
         {

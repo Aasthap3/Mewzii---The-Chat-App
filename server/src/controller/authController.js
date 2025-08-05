@@ -1,7 +1,22 @@
 import User from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import { genAuthToken } from "../utils/auth.js";
-import getCloudinary from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
+
+// Helper function to upload file to cloudinary
+const uploadToCloudinary = async (filePath) => {
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: "chat-app-profiles",
+      transformation: [
+        { width: 400, height: 400, crop: "fill", gravity: "face" }
+      ]
+    });
+    return result.secure_url;
+  } catch (error) {
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
+  }
+};
 
 export const register = async (req, res, next) => {
   try {
@@ -24,21 +39,10 @@ export const register = async (req, res, next) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const profileLink = `https://placehold.co/600x400?text=${fullname
+    // Create a placeholder profile picture URL (no need to upload to Cloudinary)
+    const profilePictureUrl = `https://placehold.co/600x400?text=${fullname
       .charAt(0)
       .toUpperCase()}`;
-
-    let photo;
-
-    try {
-      const cloudinary = await getCloudinary();
-      const uploadResponse = await cloudinary.uploader.upload(profileLink);
-      photo = uploadResponse.secure_url;
-    } catch (err) {
-      const error = new Error("Image upload failed: " + err.message);
-      error.statusCode = 500;
-      return next(error);
-    }
 
     // Create user
     const newUser = await User.create({
@@ -46,7 +50,7 @@ export const register = async (req, res, next) => {
       fullname,
       email,
       password: hashedPassword,
-      profilePicture: photo,
+      profilePicture: profilePictureUrl,
       role: "User",
     });
 
