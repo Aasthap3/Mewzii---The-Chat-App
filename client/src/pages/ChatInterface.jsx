@@ -1,99 +1,151 @@
-import React, { useRef, useState } from "react";
-
-const mockUsers = [
-  { id: 1, name: "Alice", avatar: "https://i.pravatar.cc/40?img=1" },
-  { id: 2, name: "Bob", avatar: "https://i.pravatar.cc/40?img=2" },
-  { id: 3, name: "Charlie", avatar: "https://i.pravatar.cc/40?img=3" },
-];
-
-const initialMessages = [
-  { id: 1, sender: "Alice", text: "Hello!", time: "10:00" },
-  { id: 2, sender: "You", text: "Hi Alice!", time: "10:01" },
-];
+import React, { useEffect, useRef, useState } from "react";
+import { FiMenu } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import axios from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
+import ChatPage from "../components/ChatPage";
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState(initialMessages);
-  const [input, setInput] = useState("");
-  const [selectedUser, setSelectedUser] = useState(mockUsers[0]);
-  const [search, setSearch] = useState("");
-  const messagesEndRef = useRef(null);
+  const { user, isLogin } = useAuth();
+  const navigate = useNavigate();
+  const [chatUser, setChatUser] = useState("");
+  const [selectedFriend, setSelectedFriend] = useState("");
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setMessages([
-      ...messages,
-      { id: messages.length + 1, sender: "You", text: input, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-    ]);
-    setInput("");
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-  };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleInputKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      handleSend(e);
+  const fetchAllUsers = async () => {
+    try {
+      const res = await axios.get("/user/getAllUsers");
+      setChatUser(res.data.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
     }
   };
 
+  useEffect(() => {
+    !isLogin && navigate("/login");
+    fetchAllUsers();
+  }, []);
+
+  const handleLogout = () => {
+    toast.promise(
+      axios.get("/auth/logout").then(() => {
+        sessionStorage.removeItem("user");
+        navigate("/login");
+      }),
+      {
+        loading: "Logging out...",
+        success: <b>Logged out successfully!</b>,
+        error: <b>Logout failed.</b>,
+      }
+    );
+  };
+
   return (
-    <div className="h-screen flex bg-base-200">
-      {/* Sidebar */}
-      <aside className="w-64 bg-base-100 border-r border-base-300 flex flex-col">
-        <div className="p-4 font-bold text-lg border-b border-base-300">Conversations</div>
+    <div className="h-screen flex bg-base-200 relative">
+      {/* Overlay for mobile drawer, covers everything including header */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[99] md:hidden cursor-pointer"
+          onClick={() => setSidebarOpen(false)}
+          tabIndex={-1}
+        />
+      )}
+      {/* Sidebar: overlays header on mobile, static on md+ */}
+      <aside
+        className={`z-[100] bg-base-100 border-r border-base-300 flex flex-col fixed md:static top-0 left-0 h-full w-64 transition-transform duration-200 md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:flex md:translate-x-0 md:relative`}
+        style={{ minWidth: 0 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-base-300">
+          <span className="font-bold text-lg">Conversations</span>
+          <div className="dropdown dropdown-end">
+            <button tabIndex={0} className="btn btn-ghost btn-circle text-xl">
+              <img
+                src={user.profilePicture}
+                alt="profile"
+                className="w-full h-full rounded-full object-cover"
+                onError={(e) => {
+                  console.log("Image failed to load:", user.profilePicture);
+                  e.target.src = `https://placehold.co/600x400?text=${user.fullname
+                    ?.charAt(0)
+                    ?.toUpperCase()}`; // Fallback image
+                }}
+              />
+            </button>
+            <ul
+              tabIndex={0}
+              className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 mt-2 z-50"
+            >
+              <li>
+                <button onClick={() => navigate("/userProfile")}>Profile</button>
+              </li>
+              <li>
+                <button onClick={handleLogout}>Logout</button>
+              </li>
+            </ul>
+          </div>
+        </div>
         <input
-          className="input input-bordered m-3"
+          className="input input-bordered m-3 w-55"
           placeholder="Search users..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
         />
         <ul className="flex-1 overflow-y-auto">
-          {mockUsers.filter(u => u.name.toLowerCase().includes(search.toLowerCase())).map(user => (
-            <li
-              key={user.id}
-              className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-base-200 ${selectedUser.id === user.id ? "bg-primary/10" : ""}`}
-              onClick={() => setSelectedUser(user)}
-            >
-              <img src={user.avatar} alt={user.name} className="rounded-full w-8 h-8" />
-              <span>{user.name}</span>
-            </li>
-          ))}
+          {chatUser &&
+            chatUser.map((friends, index) => (
+              <li
+                key={friends.id}
+                className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-base-200 ${
+                  selectedFriend.id === friends.id ? "bg-primary/10" : ""
+                }`}
+                onClick={() => {
+                  setSelectedFriend(friends);
+                  setSidebarOpen(false);
+                }}
+              >
+                <img
+                  src={friends.profilePicture}
+                  alt={friends.name}
+                  className="rounded-full w-8 h-8"
+                  onError={(e) => {
+                    console.log(
+                      "Image failed to load:",
+                      friends.profilePicture
+                    );
+                    e.target.src = `https://placehold.co/600x400/text=${friends.fullname
+                      .charAt(0)
+                      .toUpperCase()}`; // Fallback image
+                  }}
+                  onLoad={() =>
+                    console.log(
+                      "Image loaded successfully:",
+                      friends.profilePicture
+                    )
+                  }
+                />
+                <span>{friends.fullname}</span>
+              </li>
+            ))}
         </ul>
       </aside>
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col">
-        {/* Topbar */}
-        <header className="h-16 bg-base-100 border-b border-base-300 flex items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <img src={selectedUser.avatar} alt={selectedUser.name} className="rounded-full w-10 h-10" />
-            <span className="font-semibold">{selectedUser.name}</span>
-          </div>
-          <button className="btn btn-sm btn-outline">Logout</button>
-        </header>
-        {/* Chat Window */}
-        <section className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
-          {messages.map(msg => (
-            <div key={msg.id} className={`chat ${msg.sender === "You" ? "chat-end" : "chat-start"}`}>
-              <div className="chat-header text-xs mb-1 flex items-center gap-2">
-                {msg.sender} <span className="opacity-60">{msg.time}</span>
-              </div>
-              <div className="chat-bubble">{msg.text}</div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </section>
-        {/* Message Input */}
-        <form className="p-4 bg-base-100 border-t border-base-300 flex gap-2" onSubmit={handleSend}>
-          <input
-            type="text"
-            className="input input-bordered flex-1"
-            placeholder="Type a message..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-          />
-          <button className="btn btn-primary" type="submit">Send</button>
-        </form>
-      </main>
+      <div className="flex-1 flex flex-col z-50">
+        {/* Topbar with menu button for mobile */}
+        <div className="md:hidden flex items-center h-16 bg-base-100 border-b border-base-300 px-4">
+          <button
+            className="btn btn-ghost btn-circle text-2xl mr-2"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
+          >
+            <FiMenu />
+          </button>
+          <span className="font-bold text-lg">Mewzii Chat</span>
+        </div>
+        <ChatPage selectedFriend={selectedFriend} />
+      </div>
     </div>
   );
 };

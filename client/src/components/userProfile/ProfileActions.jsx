@@ -18,20 +18,26 @@ const ProfileActions = () => {
         error: <b>Logout failed.</b>,
       }
     );
+  };
 
-    const handleDeleteAccount = () => {
+  const handleDeleteAccount = (userId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    ) {
       toast.promise(
-        axios.delete(`/auth/deleteUser/${JSON.parse(sessionStorage.getItem("user"))._id}`),
+        axios.delete(`/auth/deleteUser/${userId}`).then(() => {
+          sessionStorage.removeItem("user");
+          navigate("/register");
+        }),
         {
           loading: "Deleting account...",
           success: <b>Account deleted successfully!</b>,
           error: <b>Failed to delete account.</b>,
         }
-      ).then(() => {
-        sessionStorage.removeItem("user");
-        navigate("/register");
-      });
-    };
+      );
+    }
   };
 
   return (
@@ -42,7 +48,7 @@ const ProfileActions = () => {
         </Link>
         <button
           className="btn btn-outline btn-error w-full md:w-auto"
-          onClick={handleDeleteAccount}
+          onClick={() => handleDeleteAccount(userId)}
         >
           Delete Account
         </button>

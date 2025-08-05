@@ -1,9 +1,15 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { use, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
+  const { setUser, setIsLogin } = useAuth();
+
+  const location = useLocation().pathname;
+
+  const [isActive, setIsActive] = useState(false);
 
   const handleThemeChange = (e) => {
     setTheme(e.target.value);
@@ -11,21 +17,32 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-50 navbar bg-base-100 shadow-sm text-primary flex justify-between items-center p-4 ">
-        <span className="font-bold text-3xl">Mewzii</span>
+      <div
+        className={`${location !== "chat" ? "sticky top-0 z-50" : ""}
+       navbar bg-base-100 shadow-sm text-primary flex justify-between items-center p-4`}
+      >
+        <Link className="font-bold text-3xl" to="/" onClick={() => setIsActive("")}>Mewzii</Link>
 
         <ul className="flex space-x-4 text-lg items-center">
           <li>
-            <Link to="/" className="btn btn-ghost">Home</Link>
+            <Link to="/" className={`btn btn-ghost ${ isActive === "" ? "text-accent": ""}`} onClick={() => setIsActive("home")}>
+              Home
+            </Link>
           </li>
           <li>
-            <Link to="/about" className="btn btn-ghost">About</Link>
+            <Link to="/about" className={`btn btn-ghost ${ isActive === "about" ? "text-accent": ""}`} onClick={() => setIsActive("about")}>
+              About
+            </Link>
           </li>
           <li>
-            <Link to="/chat" className="btn btn-ghost">Chat</Link>
+            <Link to="/chat" className={`btn btn-ghost ${ isActive === "chat" ? "text-accent": ""}`} onClick={() => setIsActive("chat")}>
+              Chat
+            </Link>
           </li>
           <li>
-            <Link to="/login" className="btn btn-ghost">Login</Link>
+            <Link to="/login" className={`btn btn-ghost ${ isActive === "login" ? "text-accent": ""}`} onClick={() => setIsActive("login")}>
+              Login
+            </Link>
           </li>
           <li>
             <select

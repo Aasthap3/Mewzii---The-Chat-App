@@ -24,9 +24,21 @@ export const register = async (req, res, next) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const profileLink = `https://placehold.co/600x400?text=${fullname.charAt(
-      0
-    )}`;
+    const profileLink = `https://placehold.co/600x400?text=${fullname
+      .charAt(0)
+      .toUpperCase()}`;
+
+    let photo;
+
+    try {
+      const cloudinary = await getCloudinary();
+      const uploadResponse = await cloudinary.uploader.upload(profileLink);
+      photo = uploadResponse.secure_url;
+    } catch (err) {
+      const error = new Error("Image upload failed: " + err.message);
+      error.statusCode = 500;
+      return next(error);
+    }
 
     // Create user
     const newUser = await User.create({
@@ -34,7 +46,8 @@ export const register = async (req, res, next) => {
       fullname,
       email,
       password: hashedPassword,
-      profilePicture: profileLink,
+      profilePicture: photo,
+      role: "User",
     });
 
     res.status(201).json({ message: "User registered successfully" });
@@ -77,6 +90,7 @@ export const login = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful",
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -85,13 +99,24 @@ export const login = async (req, res, next) => {
 
 export const googleLogin = async (req, res, next) => {
   try {
+    console.log('googleLogin req.body:', req.body);
     const { name, email, id, imageUrl } = req.body;
 
+    if (!name || !email || !id) {
+      const error = new Error('Missing required Google user fields');
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const existingUser = await User.findOne({ email });
+    console.log('googleLogin existingUser:', existingUser);
 
     if (!existingUser) {
       // Create new user if not exists
-      const profileLink = imageUrl.split("=s96")[0] + "=s400-c";
+      const googleProfileLink = imageUrl ? (imageUrl.split("=s96")[0] + "=s400-c") : null;
+      const placeholderLink = `https://placehold.co/600x400?text=${name.charAt(0).toUpperCase()}`;
+      const photo = googleProfileLink || placeholderLink;
+
       const hashedGoogleId = await bcrypt.hash(id, 10);
       const userName = email.split("@")[0];
 
@@ -99,7 +124,7 @@ export const googleLogin = async (req, res, next) => {
         username: userName,
         fullname: name,
         email,
-        profilePicture: profileLink,
+        profilePicture: photo,
         googleId: hashedGoogleId,
         role: "User",
         type: "googleUser",
@@ -110,7 +135,7 @@ export const googleLogin = async (req, res, next) => {
 
       res.status(201).json({
         message: "User created successfully",
-        newUser,
+        data: newUser,
       });
     } else if (existingUser.type === "normalUser") {
       const hashedGoogleId = await bcrypt.hash(id, 10);
@@ -127,7 +152,7 @@ export const googleLogin = async (req, res, next) => {
 
       res.status(200).json({
         message: "User logged in successfully",
-        upgradedUser,
+        data: upgradedUser,
       });
     } else {
       const isMatch = await bcrypt.compare(id, existingUser.googleId);
@@ -139,10 +164,11 @@ export const googleLogin = async (req, res, next) => {
       await genAuthToken(existingUser._id, res);
       res.status(200).json({
         message: "Login successful",
-        user: existingUser,
+        data: existingUser,
       });
     }
   } catch (error) {
+    console.error('googleLogin error:', error);
     next(error);
   }
 };

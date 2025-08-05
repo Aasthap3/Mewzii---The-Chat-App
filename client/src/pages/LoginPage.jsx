@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import {FcGoogle} from "react-icons/fc";
@@ -6,21 +6,24 @@ import cat from "../assets/cat.svg";
 import axios from "../config/api";
 import toast from "react-hot-toast";
 import { useGoogleAuth } from "../config/googleAuth";
+import { useAuth } from "../contexts/AuthContext";
 
 const LoginPage = () => {
   const { theme } = useTheme();
+  const { setUser, isLogin, setIsLogin } = useAuth();
+
   const {
     isLoading,
     error: googleError,
     isInitialized,
     signInWithGoogle,
   } = useGoogleAuth();
+  
   const [loginData, setLoginData] = useState({
     emailOrUsername: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -33,20 +36,21 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError("");
     setLoading(true);
     try {
       const res = await axios.post("/auth/login", loginData);
-        toast.success("Login successful!");
+        toast.success(res.data.message);
+        sessionStorage.setItem("user", JSON.stringify(res.data.data));
+        setUser(res.data.data);
+        setIsLogin(true);
         navigate("/chat");
     } catch (error) {
-      setFormError(
-        `Error: ${error?.response?.status || 500} : ${
-          error?.response?.data?.message || "Login failed"
-        }`
-      );
+      const status = error?.response?.status || 500;
+      const message = error?.response?.data?.message || "Service Unavailable";
+      toast.error(`Error: ${status} : ${message}`);
+    }finally{
+      setLoading(false);
     }
-    setLoading(false);
     setLoginData({
       emailOrUsername: "",
       password: "",
@@ -57,6 +61,9 @@ const LoginPage = () => {
     try {
       console.log("Google login successful:", userData);
       const res = await axios.post("/auth/googleLogin", userData);
+      sessionStorage.setItem("user", JSON.stringify(res.data.data));
+      setUser(res.data.data);
+      setIsLogin(true);
       toast.success(res.data.message);
       navigate("/chat");
     } catch (error) {
@@ -73,6 +80,10 @@ const LoginPage = () => {
   const handleGoogleSignIn = async () => {
     signInWithGoogle(handleGoogleSuccess, handleGoogleFailure);
   };
+
+  useEffect(() => {
+    isLogin && navigate("/chat");
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 px-2 py-6">
@@ -100,11 +111,6 @@ const LoginPage = () => {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-center mb-4 md:mb-6 tracking-tight">
               Sign In
             </h2>
-            {(formError || googleError) && (
-              <div className="alert alert-error mb-4 py-2 px-3 text-center">
-                {formError || googleError}
-              </div>
-            )}
             <div className="form-control mb-3 md:mb-4">
               <label className="label font-semibold">Email or Username</label>
               <input

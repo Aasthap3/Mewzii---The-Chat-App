@@ -17,7 +17,7 @@ const dummyUser = {
 };
 
 const UserProfilePage = () => {
-  const [user, setUser] = useState(dummyUser);
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || {});
   const [editingBio, setEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState(user.bio);
 
