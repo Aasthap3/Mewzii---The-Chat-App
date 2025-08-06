@@ -41,15 +41,10 @@ const ChatInterface = () => {
           error: <b>Logout failed.</b>,
         }
       );
-      
-      // Use the logout function from AuthContext
       logout();
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if backend logout fails, clear frontend state
-      logout();
-      navigate("/login");
     }
   };
 
@@ -65,13 +60,13 @@ const ChatInterface = () => {
       )}
       {/* Sidebar: overlays header on mobile, static on md+ */}
       <aside
-        className={`z-[100] bg-base-100 border-r border-base-300 flex flex-col fixed md:static top-0 left-0 h-full w-64 transition-transform duration-200 md:translate-x-0 ${
+        className={`z-[100] bg-base-100 border-r border-base-300 flex flex-col fixed top-0 left-0 h-full w-64 transition-transform duration-200 md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:flex md:translate-x-0 md:relative`}
         style={{ minWidth: 0 }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-base-300">
+        <div className="flex items-center justify-between p-4 border-b border-base-300 h-20">
           <span className="font-bold text-lg">Conversations</span>
           <div className="dropdown dropdown-end">
             <button tabIndex={0} className="btn btn-ghost btn-circle text-xl">
@@ -83,7 +78,7 @@ const ChatInterface = () => {
                   console.log("Image failed to load:", user.profilePicture);
                   e.target.src = `https://placehold.co/600x400?text=${user.fullname
                     ?.charAt(0)
-                    ?.toUpperCase()}`; // Fallback image
+                    ?.toUpperCase()}`;
                 }}
               />
             </button>
@@ -120,13 +115,13 @@ const ChatInterface = () => {
                 <img
                   src={friends.profilePicture}
                   alt={friends.name}
-                  className="rounded-full w-8 h-8"
+                  className="rounded-full w-8 h-8 object-cover"
                   onError={(e) => {
                     console.log(
                       "Image failed to load:",
                       friends.profilePicture
                     );
-                    e.target.src = `https://placehold.co/600x400/text=${friends.fullname
+                    e.target.src = `https://placehold.co/600x400?text=${friends.fullname
                       .charAt(0)
                       .toUpperCase()}`; // Fallback image
                   }}
@@ -145,9 +140,9 @@ const ChatInterface = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col z-50">
         {/* Topbar with menu button for mobile */}
-        <div className="md:hidden flex items-center h-16 bg-base-100 border-b border-base-300 px-4">
+        <div className={` ${selectedFriend ? ("hidden") : ""} flex items-center h-20 bg-base-100 border-b border-base-300 px-4`}>
           <button
-            className="btn btn-ghost btn-circle text-2xl mr-2"
+            className="md:hidden btn btn-ghost btn-circle text-2xl mr-2"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
           >

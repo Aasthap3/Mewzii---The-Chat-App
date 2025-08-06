@@ -11,6 +11,9 @@ import AdminRouter from "./src/router/adminRouter.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
+import http from "http";
+import { Server } from "socket.io";
+import { webSocket } from "./src/webSocket.js";
 
 const app = express();
 app.use(
@@ -39,9 +42,18 @@ app.use((err, req, res, next) => {
   });
 });
 
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
 const PORT = process.env.PORT || 4500;
 
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   try {
     await cloudinary.api.resources({ max_results: 1 });

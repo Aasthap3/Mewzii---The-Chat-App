@@ -2,6 +2,7 @@ import React, { use, useEffect, useState } from "react";
 import axios from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { TbMessageHeart } from "react-icons/tb";
+import apiSocket from "../config/socket";
 
 const ChatPage = ({ selectedFriend }) => {
   const { user } = useAuth();
@@ -56,18 +57,19 @@ const ChatPage = ({ selectedFriend }) => {
   };
 
   useEffect(() => {
-    if (selectedFriend) {
-      const interval = setInterval(() => {
-        receiveMessages();
-      }, 2000);
-      return () => clearInterval(interval);
-    }
+    if (!user._id || !selectedFriend) return;
+    console.log(selectedFriend);
+    apiSocket.emit("register", user._id);
+
+    return () => {
+      apiSocket.emit("unregister", user._id);
+    };
   }, [selectedFriend]);
 
   const handleInputKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend(e);
+      handleSendMessage(e);
     }
   };
 
@@ -85,16 +87,24 @@ const ChatPage = ({ selectedFriend }) => {
   return (
     <>
       <div className="flex-1 flex flex-col z-60">
-        <header className="h-16 bg-base-100 border-b border-base-300 flex items-center justify-between px-6">
+        <header className="h-20 bg-base-100 border-b border-base-300 flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <img
-              src={selectedFriend.avatar}
-              alt={selectedFriend.name}
-              className="rounded-full w-10 h-10"
+              src={selectedFriend.profilePicture}
+              alt={selectedFriend.fullname}
+              className="rounded-full w-10 h-10 object-cover"
+              onError={(e) => {
+                console.log("Image failed to load:", selectedFriend.profilePicture);
+                e.target.src = `https://placehold.co/600x400?text=${selectedFriend.fullname
+                  .charAt(0)
+                  .toUpperCase()}`;
+            }}
             />
-            <span className="font-semibold">{selectedFriend.name}</span>
+            <div className="grid">
+              <span className="font-semibold">{selectedFriend.fullname}</span>
+              <span className="font-medium">@{selectedFriend.username}</span>
+            </div>
           </div>
-          <button className="btn btn-sm btn-outline">Logout</button>
         </header>
         {/* Chat Window */}
         <section className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">

@@ -103,7 +103,6 @@ export const login = async (req, res, next) => {
 
 export const googleLogin = async (req, res, next) => {
   try {
-    console.log('googleLogin req.body:', req.body);
     const { name, email, id, imageUrl } = req.body;
 
     if (!name || !email || !id) {
@@ -113,10 +112,7 @@ export const googleLogin = async (req, res, next) => {
     }
 
     const existingUser = await User.findOne({ email });
-    console.log('googleLogin existingUser:', existingUser);
-
     if (!existingUser) {
-      // Create new user if not exists
       const googleProfileLink = imageUrl ? (imageUrl.split("=s96")[0] + "=s400-c") : null;
       const placeholderLink = `https://placehold.co/600x400?text=${name.charAt(0).toUpperCase()}`;
       const photo = googleProfileLink || placeholderLink;
