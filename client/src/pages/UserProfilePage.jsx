@@ -2,16 +2,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ProfileHeader from "../components/userProfile/ProfileHeader";
-import ProfileBio from "../components/userProfile/ProfileBio";
+import ProfileEditModal from "../components/userProfile/ProfileEditModal";
 import ProfileSettings from "../components/userProfile/ProfileSettings";
 import ProfileActions from "../components/userProfile/ProfileActions";
 import { useAuth } from "../contexts/AuthContext";
 
 const UserProfilePage = () => {
-  const { user: authUser, isLogin } = useAuth();
+  const { user: authUser, isLogin, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [editingBio, setEditingBio] = useState(false);
-  const [bioInput, setBioInput] = useState(authUser?.bio || "");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(authUser);
+
+  // Update currentUser when authUser changes
+  useEffect(() => {
+    setCurrentUser(authUser);
+  }, [authUser]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -21,7 +26,7 @@ const UserProfilePage = () => {
   }, [isLogin, navigate]);
 
   // Show loading or redirect if no user data
-  if (!authUser && isLogin) {
+  if (!currentUser && isLogin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-300 py-8 px-2 flex items-center justify-center">
         <div className="loading loading-spinner loading-lg"></div>
@@ -31,21 +36,26 @@ const UserProfilePage = () => {
 
   // Format the user data to match the expected structure
   const user = {
-    username: authUser?.username || "",
-    fullname: authUser?.fullname || "",
-    email: authUser?.email || "",
-    avatar: authUser?.profilePicture || `https://placehold.co/600x400?text=${authUser?.fullname?.charAt(0)?.toUpperCase() || "U"}`,
-    bio: authUser?.bio || "Hey! I'm new to this chat app.",
-    joined: authUser?.createdAt ? new Date(authUser.createdAt).toLocaleDateString() : "Recently",
+    username: currentUser?.username || "",
+    fullname: currentUser?.fullname || "",
+    email: currentUser?.email || "",
+    avatar: currentUser?.profilePicture || `https://placehold.co/600x400?text=${currentUser?.fullname?.charAt(0)?.toUpperCase() || "U"}`,
+    joined: currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : "Recently",
     theme: "light", // You can add theme preference to user model later
+    profilePicture: currentUser?.profilePicture || "",
   };
 
-  const handleEditBio = () => setEditingBio(true);
-  const handleSaveBio = () => {
-    // Here you would typically make an API call to update the bio
-    // For now, we'll just update the local state
-    setEditingBio(false);
-    // TODO: Add API call to update user bio
+  const handleEditProfile = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleUserUpdate = (updatedUserData) => {
+    // Update local state
+    setCurrentUser(updatedUserData);
+    // Update context if updateUser function exists
+    if (updateUser) {
+      updateUser(updatedUserData);
+    }
   };
 
   return (
@@ -64,26 +74,17 @@ const UserProfilePage = () => {
           </button>
         </div>
         
-        <ProfileHeader user={user} />
-        {editingBio ? (
-          <div className="bg-base-100 rounded-xl shadow p-6 mb-8">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xl font-semibold">Edit Bio</h3>
-              <button className="btn btn-xs btn-outline" onClick={() => setEditingBio(false)}>Cancel</button>
-            </div>
-            <textarea
-              className="textarea textarea-bordered w-full mb-4"
-              rows={3}
-              value={bioInput}
-              onChange={e => setBioInput(e.target.value)}
-            />
-            <button className="btn btn-primary btn-sm" onClick={handleSaveBio}>Save</button>
-          </div>
-        ) : (
-          <ProfileBio user={user} onEdit={handleEditBio} />
-        )}
+        <ProfileHeader user={user} onEdit={handleEditProfile} />
         <ProfileSettings user={user} />
         <ProfileActions />
+        
+        {/* Edit Profile Modal */}
+        <ProfileEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          user={user}
+          onUserUpdate={handleUserUpdate}
+        />
       </div>
     </div>
   );

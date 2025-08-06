@@ -1,7 +1,17 @@
 import React from "react";
+import { FiEdit2 } from "react-icons/fi";
 
-const ProfileHeader = ({ user }) => (
-  <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 p-6 bg-base-100 rounded-xl shadow mb-8">
+const ProfileHeader = ({ user, onEdit }) => (
+  <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 p-6 bg-base-100 rounded-xl shadow mb-8 relative">
+    {/* Edit Button */}
+    <button 
+      onClick={onEdit}
+      className="absolute top-4 right-4 btn btn-ghost btn-sm btn-circle hover:bg-primary/10"
+      title="Edit Profile"
+    >
+      <FiEdit2 className="w-4 h-4" />
+    </button>
+    
     <img 
       src={user.avatar} 
       alt={user.fullname} 

@@ -21,8 +21,15 @@ export const AuthProvider = (props) => {
     setIsLogin(false);
   };
 
+  const updateUser = (updatedUserData) => {
+    // Update user state
+    setUser(updatedUserData);
+    // Update session storage
+    sessionStorage.setItem("user", JSON.stringify(updatedUserData));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLogin, setUser, setIsLogin, logout }}>
+    <AuthContext.Provider value={{ user, isLogin, setUser, setIsLogin, logout, updateUser }}>
       {props.children}
     </AuthContext.Provider>
   );
