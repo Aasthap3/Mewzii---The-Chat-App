@@ -25,11 +25,12 @@ export const CurrentUser = async (req, res, next) => {
 
 export const sendMessage = async (req, res, next) => {
   try {
-    const { senderId, receiverId, message } = req.body;
+    const { senderId, receiverId, content, timestamp } = req.body;
     const newMessage = await Message.create({
       senderId,
       receiverId,
-      content: message,
+      content,
+      timestamp,
     });
     res
       .status(200)

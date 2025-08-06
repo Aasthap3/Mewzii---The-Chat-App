@@ -11,5 +11,17 @@ export const webSocket = (io) => {
       delete OnlineUsers[userId];
       console.log("Online Users:", OnlineUsers);
     });
+
+    socket.on("sendMessage", ({ from, to, content, timestamp }) => {
+      const receiverSocketId = OnlineUsers[to];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receiveMessage", {
+          from,
+          to,
+          content,
+          timestamp,
+        });
+      }
+    });
   });
 };

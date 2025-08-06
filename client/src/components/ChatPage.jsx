@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import axios from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { TbMessageHeart } from "react-icons/tb";
@@ -8,11 +8,26 @@ const ChatPage = ({ selectedFriend }) => {
   const { user } = useAuth();
   const [currentFriend, setCurrentFriend] = useState("");
   const [messages, setMessages] = useState("");
-  const [chats, setChats] = useState("--No Messages Yet--");
+  const [chats, setChats] = useState("");
+  const messageEndRef = useRef(null);
+
+  const handleInputKeyDown = async (e) => {
+    if (e.key === "Enter") {
+      await handleSendMessage(e);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chats]);
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await axios.get(`/user/getCurrentUser/${selectedFriend}`);
+      const res = await axios.get(`/user/getCurrentUser/${selectedFriend._id}`); // Use selectedFriend._id
       setCurrentFriend(res.data.data);
     } catch (error) {
       console.error("Error fetching current user:", error);
@@ -21,7 +36,13 @@ const ChatPage = ({ selectedFriend }) => {
 
   const fetchMessages = async () => {
     try {
-    } catch (error) {}
+      const res = await axios.get(`/user/getMessages/${selectedFriend._id}`); // Use selectedFriend._id
+      // Sort messages by timestamp to ensure correct order
+      const sortedChats = (res.data.data || []).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      setChats(sortedChats);
+    } catch (error) {
+      setChats([]);
+    }
   };
 
   useEffect(() => {
@@ -32,46 +53,79 @@ const ChatPage = ({ selectedFriend }) => {
   }, [selectedFriend]);
 
   const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!messages.trim()) return;
+
     try {
       const messagePack = {
         senderId: user._id,
-        receiverId: selectedFriend,
-        message: messages,
+        receiverId: selectedFriend._id, // Use selectedFriend._id instead of selectedFriend
+        content: messages,
+        timestamp: new Date().toISOString(),
       };
-      console.log(messages);
       const res = await axios.post("/user/send", messagePack);
+      apiSocket.emit("sendMessage", {
+        from: user._id,
+        to: selectedFriend._id,
+        content: messages,
+        timestamp: messagePack.timestamp,
+      });
+      // Add message and sort to maintain chronological order
+      setChats((prev) => {
+        const newChats = [...prev, { ...messagePack }];
+        return newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      });
       setMessages("");
-      receiveMessages();
     } catch (error) {
       console.log("Error sending message:", error);
     }
   };
 
-  const receiveMessages = async () => {
-    try {
-      const res = await axios.get(`/user/getMessages/${selectedFriend}`);
-      setChats(res.data.data);
-    } catch (error) {
-      setChats("--No Messages Yet--");
-    }
-  };
-
   useEffect(() => {
-    if (!user._id || !selectedFriend) return;
-    console.log(selectedFriend);
+    if (!user._id || !selectedFriend?._id) return;
+    console.log("Selected friend:", selectedFriend);
     apiSocket.emit("register", user._id);
 
+    const handleReceiveMessage = (msgPacket) => {
+      if (msgPacket.from === selectedFriend._id) {
+        setChats((prev) => {
+          const newMessage = {
+            ...msgPacket,
+            senderId: msgPacket.from,
+            receiverId: msgPacket.to,
+            content: msgPacket.content,
+            timestamp: msgPacket.timestamp,
+          };
+          const newChats = [...prev, newMessage];
+          // Sort to maintain chronological order
+          return newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        });
+      }
+    };
+
+    apiSocket.on("receiveMessage", handleReceiveMessage);
+
     return () => {
+      apiSocket.off("receiveMessage", handleReceiveMessage);
       apiSocket.emit("unregister", user._id);
     };
-  }, [selectedFriend]);
+  }, [selectedFriend, user._id]);
 
-  const handleInputKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(e);
-    }
+  const formatToISTDateTime = (utcTimestamp) => {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   };
+
+  const formatted = new Date(utcTimestamp).toLocaleString("en-GB", options);
+
+  return formatted.replace(",", ""); // Remove comma between date and time
+};
 
   if (!selectedFriend) {
     return (
@@ -86,19 +140,22 @@ const ChatPage = ({ selectedFriend }) => {
   }
   return (
     <>
-      <div className="flex-1 flex flex-col z-60">
-        <header className="h-20 bg-base-100 border-b border-base-300 flex items-center justify-between px-6">
+      <div className="flex-1 flex flex-col h-screen z-60">
+        <header className="h-20 sticky top-0 bg-base-100 border-b border-base-300 flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <img
               src={selectedFriend.profilePicture}
               alt={selectedFriend.fullname}
               className="rounded-full w-10 h-10 object-cover"
               onError={(e) => {
-                console.log("Image failed to load:", selectedFriend.profilePicture);
+                console.log(
+                  "Image failed to load:",
+                  selectedFriend.profilePicture
+                );
                 e.target.src = `https://placehold.co/600x400?text=${selectedFriend.fullname
                   .charAt(0)
                   .toUpperCase()}`;
-            }}
+              }}
             />
             <div className="grid">
               <span className="font-semibold">{selectedFriend.fullname}</span>
@@ -107,29 +164,33 @@ const ChatPage = ({ selectedFriend }) => {
           </div>
         </header>
         {/* Chat Window */}
-        <section className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
-          {chats !== "--No Messages Yet--" ? (
-            chats.map((chat, index) => (
+        <section className="flex-1 overflow-y-auto p-6 flex flex-col gap-2 min-h-0">
+          {chats.length > 0 ? (
+            chats.map((chat) => (
               <div
                 className={`${
                   chat.senderId === user._id
                     ? "bg-secondary text-secondary-content self-end"
                     : "bg-primary text-primary-content self-start"
-                } p-3 rounded-lg max-w-[70%]`}
-                key={index}
+                } p-2 rounded-lg max-w-[70%]`}
+                key={chat._id || `${chat.senderId}-${chat.timestamp}`}
               >
-                {chat.text}
+                {chat.content}
+                <span className="text-xs text-gray-400 flex justify-end">
+                  {formatToISTDateTime(chat.timestamp)}
+                </span>
               </div>
             ))
           ) : (
             <div className="text-error p-3 rounded-lg h-full flex justify-center items-center">
-              {chats}
+              --No Messages Yet--
             </div>
           )}
+          <div ref={messageEndRef}></div>
         </section>
         {/* Message Input */}
         <form
-          className="p-4 bg-base-100 border-t border-base-300 flex gap-2"
+          className="p-4 bg-base-100 border-t border-base-300 flex gap-2 flex-shrink-0"
           onSubmit={handleSendMessage}
         >
           <input

@@ -86,10 +86,10 @@ const ChatInterface = () => {
               tabIndex={0}
               className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 mt-2 z-50"
             >
-              <li>
+              <li key="profile">
                 <button onClick={() => navigate("/userProfile")}>Profile</button>
               </li>
-              <li>
+              <li key="logout">
                 <button onClick={handleLogout}>Logout</button>
               </li>
             </ul>
@@ -103,9 +103,9 @@ const ChatInterface = () => {
           {chatUser &&
             chatUser.map((friends, index) => (
               <li
-                key={friends.id}
+                key={friends._id}
                 className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-base-200 ${
-                  selectedFriend.id === friends.id ? "bg-primary/10" : ""
+                  selectedFriend._id === friends._id ? "bg-primary/10" : ""
                 }`}
                 onClick={() => {
                   setSelectedFriend(friends);

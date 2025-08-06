@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// Updated CORS configuration for multiple ports
 import express from "express";
 import connectDB from "./src/config/db.js";
 await connectDB();
@@ -18,7 +19,7 @@ import { webSocket } from "./src/webSocket.js";
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Support both ports
     credentials: true,
   })
 );
@@ -45,11 +46,14 @@ app.use((err, req, res, next) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Support both ports
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
+
+// Initialize WebSocket handlers for live messaging
+webSocket(io);
 
 const PORT = process.env.PORT || 4500;
 
