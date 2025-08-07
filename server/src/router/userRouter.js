@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, CurrentUser, recieveMessages, sendMessage, updateProfile, uploadProfilePicture } from '../controller/userController.js';
+import { getAllUsers, CurrentUser, recieveMessages, sendMessage, updateProfile, uploadProfilePicture, changePassword } from '../controller/userController.js';
 import { Protect } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 
@@ -27,5 +27,6 @@ router.get("/getMessages/:_id", Protect, recieveMessages);
 router.post("/send", Protect, sendMessage);
 router.put("/updateProfile", Protect, updateProfile);
 router.post("/uploadProfilePicture", Protect, upload.single('profilePicture'), uploadProfilePicture);
+router.put("/changePassword", Protect, changePassword);
 
 export default router;

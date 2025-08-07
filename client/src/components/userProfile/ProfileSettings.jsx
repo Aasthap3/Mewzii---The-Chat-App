@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 const ProfileSettings = ({ user }) => {
   const { theme } = useTheme();
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  const handleChangePassword = () => {
+    setIsChangePasswordModalOpen(true);
+  };
   return (
     <>
       <div className="bg-base-100 rounded-xl shadow p-6 mb-8">
@@ -18,10 +24,19 @@ const ProfileSettings = ({ user }) => {
             <span className="font-semibold">Email:</span>
             <span className="ml-2">{user?.email || "No email provided"}</span>
           </div>
-          <button className="btn btn-sm btn-primary w-fit mt-2">
+          <button 
+            className="btn btn-sm btn-primary w-fit mt-2"
+            onClick={handleChangePassword}
+          >
             Change Password
           </button>
         </div>
+        
+        {/* Change Password Modal */}
+        <ChangePasswordModal
+          isOpen={isChangePasswordModalOpen}
+          onClose={() => setIsChangePasswordModalOpen(false)}
+        />
       </div>
     </>
   );

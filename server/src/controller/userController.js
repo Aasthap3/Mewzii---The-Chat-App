@@ -1,6 +1,7 @@
 import User from "../model/userModel.js";
 import Message from "../model/messageModel.js";
 import cloudinary from "../config/cloudinary.js";
+import bcrypt from "bcrypt";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -149,6 +150,68 @@ export const uploadProfilePicture = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Upload error:", error);
+    next(error);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { currentPassword, newPassword } = req.body;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required"
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "New password must be at least 6 characters long"
+      });
+    }
+
+    // Get user with password (since we exclude it by default)
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        message: "Current password is incorrect"
+      });
+    }
+
+    // Check if new password is different from current password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        message: "New password must be different from current password"
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password in database
+    await User.findByIdAndUpdate(
+      userId,
+      { password: hashedNewPassword },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
     next(error);
   }
 };

@@ -1,4 +1,5 @@
 import User from "../model/userModel.js";
+import Message from "../model/messageModel.js";
 import bcrypt from "bcrypt";
 import { genAuthToken } from "../utils/auth.js";
 import cloudinary from "../config/cloudinary.js";
@@ -187,6 +188,7 @@ export const logout = async (req, res) => {
 export const deleteUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
+    const authenticatedUserId = req.user._id.toString(); // From auth middleware
 
     if (!userId) {
       const error = new Error("User ID is required");
@@ -194,16 +196,40 @@ export const deleteUser = async (req, res, next) => {
       return next(error);
     }
 
-    const user = await User.findByIdAndDelete(userId);
+    // Security check: users can only delete their own account
+    if (userId !== authenticatedUserId) {
+      const error = new Error("You can only delete your own account");
+      error.statusCode = 403;
+      return next(error);
+    }
 
+    // Check if user exists
+    const user = await User.findById(userId);
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
       return next(error);
     }
 
-    res.status(200).json({ message: "User deleted successfully" });
+    // Delete all messages where the user is either sender or receiver
+    const messageDeleteResult = await Message.deleteMany({
+      $or: [
+        { senderId: userId },
+        { receiverId: userId }
+      ]
+    });
+
+    console.log(`Deleted ${messageDeleteResult.deletedCount} messages for user ${userId}`);
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ 
+      message: "User and all associated messages deleted successfully",
+      deletedMessages: messageDeleteResult.deletedCount
+    });
   } catch (error) {
+    console.error("Delete user error:", error);
     next(error);
   }
 };

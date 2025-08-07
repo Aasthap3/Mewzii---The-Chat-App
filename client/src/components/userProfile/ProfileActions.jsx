@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const ProfileActions = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     toast.promise(
@@ -22,7 +22,7 @@ const ProfileActions = () => {
     );
   };
 
-  const handleDeleteAccount = (userId) => {
+  const handleDeleteAccount =  (userId) => {
     if (
       window.confirm(
         "Are you sure you want to delete your account? This action cannot be undone."
@@ -50,7 +50,7 @@ const ProfileActions = () => {
         </Link>
         <button
           className="btn btn-outline btn-error w-full md:w-auto"
-          onClick={() => handleDeleteAccount(userId)}
+          onClick={() => handleDeleteAccount(user._id)}
         >
           Delete Account
         </button>

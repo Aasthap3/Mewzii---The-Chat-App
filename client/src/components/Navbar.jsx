@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
-  const { setUser, setIsLogin } = useAuth();
+  const { user, isLogin } = useAuth();
 
   const location = useLocation().pathname;
 
@@ -21,29 +21,74 @@ const Navbar = () => {
         className={`${location !== "chat" ? "sticky top-0 z-50" : ""}
        navbar bg-base-100 shadow-sm text-primary flex justify-between items-center p-4`}
       >
-        <Link className="font-bold text-3xl" to="/" onClick={() => setIsActive("")}>Mewzii</Link>
+        <Link
+          className="font-bold text-3xl"
+          to="/"
+          onClick={() => setIsActive("")}
+        >
+          Mewzii
+        </Link>
 
         <ul className="flex space-x-4 text-lg items-center">
           <li>
-            <Link to="/" className={`btn btn-ghost ${ isActive === "" ? "text-accent": ""}`} onClick={() => setIsActive("home")}>
+            <Link
+              to="/"
+              className={`btn btn-ghost ${
+                isActive === "" ? "text-accent" : ""
+              }`}
+              onClick={() => setIsActive("home")}
+            >
               Home
             </Link>
           </li>
           <li>
-            <Link to="/about" className={`btn btn-ghost ${ isActive === "about" ? "text-accent": ""}`} onClick={() => setIsActive("about")}>
+            <Link
+              to="/about"
+              className={`btn btn-ghost ${
+                isActive === "about" ? "text-accent" : ""
+              }`}
+              onClick={() => setIsActive("about")}
+            >
               About
             </Link>
           </li>
-          <li>
-            <Link to="/chat" className={`btn btn-ghost ${ isActive === "chat" ? "text-accent": ""}`} onClick={() => setIsActive("chat")}>
+          {isLogin && (
+            <li>
+            <Link
+              to="/chat"
+              className={`btn btn-ghost ${
+                isActive === "chat" ? "text-accent" : ""
+              }`}
+              onClick={() => setIsActive("chat")}
+            >
               Chat
             </Link>
           </li>
-          <li>
-            <Link to="/login" className={`btn btn-ghost ${ isActive === "login" ? "text-accent": ""}`} onClick={() => setIsActive("login")}>
-              Login
-            </Link>
-          </li>
+          )}
+          {isLogin && user ? (
+            <li>
+              <Link to={"/userProfile"}>
+                <img
+                  src={user.profilePicture}
+                  alt={user.fullname}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              </Link>
+            </li>
+          ) : (
+            <li>
+              <Link
+                to="/login"
+                className={`btn btn-ghost ${
+                  isActive === "login" ? "text-accent" : ""
+                }`}
+                onClick={() => setIsActive("login")}
+              >
+                Login
+              </Link>
+            </li>
+          )}
+
           <li>
             <select
               className="select select-primary bg-base-100 text-base"
