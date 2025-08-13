@@ -8,7 +8,6 @@ await connectDB();
 import cloudinary from "./src/config/cloudinary.js";
 import AuthRouter from "./src/router/authRouter.js";
 import UserRouter from "./src/router/userRouter.js";
-import AdminRouter from "./src/router/adminRouter.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
@@ -30,7 +29,6 @@ app.use(morgan("dev"));
 
 app.use("/auth", AuthRouter);
 app.use("/user", UserRouter);
-app.use("/admin", AdminRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Mewzii Chat App Connected" });

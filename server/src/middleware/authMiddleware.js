@@ -38,16 +38,3 @@ export const isUser = (req, res, next) => {
     next(error);
   }
 }
-
-export const isAdmin = (req, res, next) => {
- try {
-   if (req.user.role !== "Admin") {
-     const error = new Error("Not authorized as an admin");
-     error.statusCode = 403;
-     return next(error);
-   }
-   next();
- } catch (error) {
-    next(error);
-  }
-}

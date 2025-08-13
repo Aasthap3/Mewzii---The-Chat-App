@@ -2,9 +2,11 @@ import React, { useRef, useEffect, useState } from "react";
 import axios from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { TbMessageHeart } from "react-icons/tb";
+import { CiMenuKebab } from "react-icons/ci";
 import apiSocket from "../config/socket";
+import toast from "react-hot-toast";
 
-const ChatPage = ({ selectedFriend }) => {
+const ChatPage = ({ selectedFriend, onFriendshipChange }) => {
   const { user } = useAuth();
   const [currentFriend, setCurrentFriend] = useState("");
   const [messages, setMessages] = useState("");
@@ -81,6 +83,36 @@ const ChatPage = ({ selectedFriend }) => {
     }
   };
 
+  const handleBlock = async () => {
+    try {
+      const res = await axios.post(`/user/blockUser/${selectedFriend._id}`);
+      toast.success(res.data.message);
+      console.log("Blocked user:", selectedFriend._id);
+      // Trigger refresh of friends list and go back to main view
+      if (onFriendshipChange) {
+        onFriendshipChange();
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to block user");
+      console.error("Error blocking user:", error);
+    }
+  }
+
+  const handleUnfriend = async () => {
+    try {
+      const res = await axios.post(`/user/unfriend/${selectedFriend._id}`);
+      toast.success(res.data.message);
+      console.log("Unfriended user:", selectedFriend._id);
+      // Trigger refresh of friends list and go back to main view
+      if (onFriendshipChange) {
+        onFriendshipChange();
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to unfriend user");
+      console.error("Error unfriending user:", error);
+    }
+  }
+
   useEffect(() => {
     if (!user._id || !selectedFriend?._id) return;
     console.log("Selected friend:", selectedFriend);
@@ -140,8 +172,8 @@ const ChatPage = ({ selectedFriend }) => {
   }
   return (
     <>
-      <div className="flex-1 flex flex-col h-screen z-60">
-        <header className="h-20 sticky top-0 bg-base-100 border-b border-base-300 flex items-center justify-between px-6 flex-shrink-0">
+      <div className="flex-1 flex flex-col absolute h-screen top-0">
+        <header className="ml-10 h-20 z-50 md:ml-0 top-0 border-b border-base-300 flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <img
               src={selectedFriend.profilePicture}
@@ -161,6 +193,22 @@ const ChatPage = ({ selectedFriend }) => {
               <span className="font-semibold">{selectedFriend.fullname}</span>
               <span className="font-medium">@{selectedFriend.username}</span>
             </div>
+          </div>
+          <div className="dropdown dropdown-end">
+              <button tabIndex={0} className="btn btn-ghost btn-circle hover:bg-primary/10" onClick={() => console.log("Menu clicked")}>
+            <CiMenuKebab className="text-2xl" />
+          </button>
+          <ul
+              tabIndex={0}
+              className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 mt-2 z-50"
+            >
+              <li key="block">
+                <button onClick={handleBlock}>Block</button>
+              </li>
+              <li key="Unfriend">
+                <button onClick={handleUnfriend}>Unfriend</button>
+              </li>
+            </ul>
           </div>
         </header>
         {/* Chat Window */}
@@ -190,7 +238,7 @@ const ChatPage = ({ selectedFriend }) => {
         </section>
         {/* Message Input */}
         <form
-          className="p-4 bg-base-100 border-t border-base-300 flex gap-2 flex-shrink-0"
+          className="p-4 bg-base-100 border-t border-base-300 flex gap-2 flex-shrink-0 sm:w-screen md:w-[83vw]"
           onSubmit={handleSendMessage}
         >
           <input
